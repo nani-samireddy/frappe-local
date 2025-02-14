@@ -43,6 +43,19 @@ services:
     image: docker.io/redis:alpine
     platform: linux/amd64
 
+  # adminer:
+  #   image: docker.io/library/adminer:latest
+  #   platform: linux/amd64
+  #   environment:
+  #     ADMINER_DEFAULT_SERVER: mariadb
+  #   ports:
+  #     - "${DB_VIEWER_PORT:-8080}:8080"
+
+  whodb:
+    image: clidey/whodb:latest
+    ports:
+      - "${DB_VIEWER_PORT:-8080}:8080"
+
   frappe:
     image: docker.io/frappe/bench:latest
     platform: linux/amd64
@@ -55,8 +68,8 @@ services:
       # - ${HOME}/.ssh:/home/frappe/.ssh
     working_dir: /workspace/project_name/source
     ports:
-      - 8000-8005:8000-8005
-      - 9000-9005:9000-9005
+      - "${FRAPPE_PORT_START:-8000}-${FRAPPE_PORT_END:-8005}:8000-8005"
+      - "${FRAPPE_ALT_PORT_START:-9000}-${FRAPPE_ALT_PORT_END:-9005}:9000-9005"
   # enable the below service if you need Cypress UI Tests to be executed
   # Before enabling ensure install_x11_deps.sh has been executed and display variable is exported.
   # Run install_x11_deps.sh again if DISPLAY is not set

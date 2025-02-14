@@ -15,6 +15,28 @@ INSTALLER_SCRIPT="installer.py"  # Path to your installer.py file
 UPDATED_COMPOSE_FILE="$PROJECT_DIR/$PROJECT_NAME-compose.yaml"
 UPDATED_INSTALLER_SCRIPT="$PROJECT_DIR/source/installer.py"
 
+# Function to get a list of unused ports
+get_unused_ports() {
+    used_ports=$( { ss -tuln | awk 'NR>1 {print $4}' | awk -F: '{print $NF}'; \
+                    docker ps --format '{{.Ports}}' | grep -o '[0-9]*' | sort -u; } | sort -u )
+    comm -23 <(seq 1024 65535 | sort) <(echo "$used_ports")
+}
+
+# Get a list of available ports
+AVAILABLE_PORTS=($(get_unused_ports))
+
+# Assign ports sequentially
+FRAPPE_PORT_START=${AVAILABLE_PORTS[0]}
+FRAPPE_PORT_END=$((FRAPPE_PORT_START + 5))
+FRAPPE_ALT_PORT_START=${AVAILABLE_PORTS[6]}  # Ensure it's different from HTTP range
+FRAPPE_ALT_PORT_END=$((FRAPPE_ALT_PORT_START + 5))
+DB_VIEWER_PORT=${AVAILABLE_PORTS[12]}  # Assign a separate port for Adminer
+
+echo "Assigning ports:"
+echo "  - HTTP: $FRAPPE_PORT_START to $FRAPPE_PORT_END"
+echo "  - ALT: $FRAPPE_ALT_PORT_START to $FRAPPE_ALT_PORT_END"
+echo "  - ADMINER: $DB_VIEWER_PORT"
+
 # Create project directory structure
 echo "Creating project directory at $PROJECT_DIR..."
 mkdir -p "$PROJECT_DIR"
@@ -48,8 +70,8 @@ sed -i '' "s/project_name/$PROJECT_NAME/g" "$UPDATED_COMPOSE_FILE"
 # Navigate to the project directory
 cd "$PROJECT_DIR" || { echo "Failed to navigate to $PROJECT_DIR"; exit 1; }
 
-# Start Docker Compose
-echo "Starting Docker Compose..."
+# Start Docker Compose with environment variables
+export FRAPPE_PORT_START FRAPPE_PORT_END FRAPPE_ALT_PORT_START FRAPPE_ALT_PORT_END DB_VIEWER_PORT
 docker-compose -f "$PROJECT_NAME-compose.yaml" up -d
 
 FRAPPE_CONTAINER_NAME="$PROJECT_NAME-frappe-1"
@@ -62,9 +84,6 @@ done
 # Get the container ID of the Frappe container
 FRAPPE_CONTAINER_ID=$(docker ps -aqf "name=$FRAPPE_CONTAINER_NAME")
 
-
-
 # Enter interactive mode and run installer.py
 echo "Running installer script in Frappe container..."
 docker exec -it "$FRAPPE_CONTAINER_ID" ./installer.py
-
