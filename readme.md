@@ -1,2 +1,7 @@
-# Frappe Local
-Frappe Local is a simple and easy to use local development environment for Frappe. It is a docker based environment that can be used to develop and test Frappe applications locally.
+# Tauri + React + Typescript
+
+This template should help get you started developing with Tauri, React and Typescript in Vite.
+
+## Recommended IDE Setup
+
+- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
