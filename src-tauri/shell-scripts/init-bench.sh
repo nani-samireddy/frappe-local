@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# echo present working directory
+echo "Present working directory: $(pwd)"
+
 # Ensure the script is executed with one argument
 if [ $# -ne 1 ]; then
   echo "Usage: $0 <project_name>"
@@ -17,10 +20,11 @@ UPDATED_INSTALLER_SCRIPT="$PROJECT_DIR/source/installer.py"
 
 # Function to get a list of unused ports
 get_unused_ports() {
-    used_ports=$( { ss -tuln | awk 'NR>1 {print $4}' | awk -F: '{print $NF}'; \
+    used_ports=$( { lsof -i -P -n | awk 'NR>1 {print $9}' | awk -F: '{print $NF}' | grep -E '^[0-9]+$' | sort -u; \
                     docker ps --format '{{.Ports}}' | grep -o '[0-9]*' | sort -u; } | sort -u )
     comm -23 <(seq 1024 65535 | sort) <(echo "$used_ports")
 }
+
 
 # Get a list of available ports
 AVAILABLE_PORTS=($(get_unused_ports))
@@ -76,6 +80,9 @@ docker-compose -f "$PROJECT_NAME-compose.yaml" up -d
 
 FRAPPE_CONTAINER_NAME="$PROJECT_NAME-frappe-1"
 
+# convert the container name to lowercase
+FRAPPE_CONTAINER_NAME=$(echo "$FRAPPE_CONTAINER_NAME" | tr '[:upper:]' '[:lower:]')
+
 echo "Waiting for Frappe container to start..."
 while [ ! "$(docker inspect -f '{{.State.Running}}' $FRAPPE_CONTAINER_NAME)" == "true" ]; do
   sleep 1
@@ -86,4 +93,4 @@ FRAPPE_CONTAINER_ID=$(docker ps -aqf "name=$FRAPPE_CONTAINER_NAME")
 
 # Enter interactive mode and run installer.py
 echo "Running installer script in Frappe container..."
-docker exec -it "$FRAPPE_CONTAINER_ID" ./installer.py
+docker exec -i "$FRAPPE_CONTAINER_ID" ./installer.py
