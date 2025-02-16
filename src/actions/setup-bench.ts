@@ -129,20 +129,6 @@ async function setupBench(projectName: string, messageCallback: any) {
     "Making installer script executable"
   );
 
-  // // Make installer script executable
-  // await runCommand(
-  //   "chmod",
-  //   ["+x", updatedInstallerScript],
-  //   "Making installer script executable"
-  // );
-
-  // // Start Docker Compose
-  // process.env.FRAPPE_PORT_START     = frappePortStart.toString();
-  // process.env.FRAPPE_PORT_END       = frappePortEnd.toString();
-  // process.env.FRAPPE_ALT_PORT_START = frappeAltPortStart.toString();
-  // process.env.FRAPPE_ALT_PORT_END   = frappeAltPortEnd.toString();
-  // process.env.DB_VIEWER_PORT        = dbViewerPort.toString();
-
   const envVars = {
     FRAPPE_PORT_START: frappePortStart.toString(),
     FRAPPE_PORT_END: frappePortEnd.toString(),
