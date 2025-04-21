@@ -1,5 +1,6 @@
 import { Command } from "@tauri-apps/plugin-shell";
 import { homeDir } from "@tauri-apps/api/path";
+import { invoke } from "@tauri-apps/api/core";
 import {
   mkdir,
   BaseDirectory,
@@ -31,7 +32,7 @@ async function runCommand(cmd: string, args: string[], step: string) {
 async function getUnusedPorts(): Promise<number[]> {
   const result = await Command.create("exec-sh", [
     "-c",
-    "bash -c \"comm -23 <(seq 1024 65535 | sort) <(lsof -i -P -n | awk 'NR>1 {print $9}' | awk -F: '{print $NF}' | sort -u)\"",
+    "bash -c \"comm -23 <(seq 1024 65535 | sort -n) <(lsof -i -P -n | awk 'NR>1 {print $9}' | awk -F: '{print $NF}' | grep -E '^[0-9]+$' | sort -n)\"",
   ]).execute();
   return result.stdout
     .split("\n")
@@ -39,25 +40,28 @@ async function getUnusedPorts(): Promise<number[]> {
     .filter((n) => !isNaN(n));
 }
 
-async function setupBench(projectName: string, messageCallback: any) {
+async function setupBench(projectName: string, setProgressState: any) {
   const home = await homeDir(); // Get the home directory from Tauri API
   const baseDir = `${home}/benches`; // Correctly build the path
   const projectDir = `${baseDir}/${projectName}`;
 
   const sourceDockerCompose = "template-files/docker-compose.yaml";
 
-  // Get available ports
-  const availablePorts = await getUnusedPorts();
-  if (availablePorts.length < 13) {
-    console.error("Not enough available ports");
-    return;
-  }
+  const unused_ports: number[] = await invoke("find_unused_ports", {
+    startPort: 8000,
+    numberOfPorts: 13,
+  });
+
+  console.log("Unused ports", unused_ports);
 
   const [frappePortStart, frappeAltPortStart, dbViewerPort] = [
-    availablePorts[0],
-    availablePorts[6],
-    availablePorts[12],
+    unused_ports[0],
+    unused_ports[6],
+    unused_ports[12],
   ];
+  messageCallback(
+    (message: string) => message + "<br/>Got available ports for services✅ Frappe Port: " + frappePortStart + " Frappe Alt Port: " + frappeAltPortStart + " DB Viewer Port: " + dbViewerPort
+  );
   const frappePortEnd = frappePortStart + 5;
   const frappeAltPortEnd = frappeAltPortStart + 5;
 
@@ -175,6 +179,9 @@ async function setupBench(projectName: string, messageCallback: any) {
     "docker",
     ["exec", "-i", containerId, "./installer.py"],
     "Running installer script"
+  );
+  messageCallback(
+    (message: string) => message + "<br/>Ran installer script✅"
   );
 }
 
